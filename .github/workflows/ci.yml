@@ -22,9 +22,9 @@ jobs:
   # start the regtest network and run the golden corpus against all versions.
   integration:
     runs-on: ubuntu-latest
-    env:
-      SBX_HOME: ${{ runner.temp }}/sbx
     steps:
+      # The runner context isn't available in job-level env, so export it from a step.
+      - run: echo "SBX_HOME=$RUNNER_TEMP/sbx" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
