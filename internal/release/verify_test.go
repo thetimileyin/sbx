@@ -44,9 +44,11 @@ func TestVerifySumsRejectsTampering(t *testing.T) {
 	if _, err := VerifySums("core", tampered, read(t, "core-31.1-SHA256SUMS.asc")); err == nil {
 		t.Fatal("tampered SHA256SUMS was accepted")
 	}
-	// Signatures from keys sbx doesn't bundle don't count: Core's file checked against Knots' keys.
-	if signers, err := VerifySums("knots", sums, read(t, "core-31.1-SHA256SUMS.asc")); err == nil {
-		t.Fatalf("Core signatures accepted with the Knots keyring (%d signers)", len(signers))
+	// Signatures only count for the exact file they were made over: Core's signatures
+	// don't vouch for Knots' SHA256SUMS. (Checking against the other project's keyring
+	// isn't a useful test: several builders sign both Core and Knots releases.)
+	if signers, err := VerifySums("core", read(t, "knots-29.4.2-SHA256SUMS"), read(t, "core-31.1-SHA256SUMS.asc")); err == nil || len(signers) != 0 {
+		t.Fatalf("Core's signatures were accepted for Knots' SHA256SUMS (%d signers)", len(signers))
 	}
 }
 
