@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: go test ./...
+
+  # The real thing on Linux: fetch every release (with builder-signature checks),
+  # start the regtest network and run the golden corpus against all versions.
+  integration:
+    runs-on: ubuntu-latest
+    env:
+      SBX_HOME: ${{ runner.temp }}/sbx
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Cache node releases
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/sbx/bin
+          key: sbx-releases-${{ runner.os }}-${{ hashFiles('internal/release/release.go') }}
+      - run: go build -o bin/sbx ./cmd/sbx
+      - run: ./bin/sbx fetch
+      - run: ./bin/sbx up
+      - run: SBX_INTEGRATION=1 go test ./internal/engine -run Golden -v
+      - run: ./bin/sbx demo package
+      - if: always()
+        run: ./bin/sbx down

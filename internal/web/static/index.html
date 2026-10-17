@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sbx · Will it relay?</title>
+<script src="/theme.js"></script>
+<link rel="stylesheet" href="/style.css">
+<script src="/app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="/">
+      <svg class="icon brand-icon" aria-hidden="true"><use href="/icons.svg#currency-bitcoin"/></svg>
+      <span class="mark">sbx</span>
+      <span class="tagline">Will it relay?</span>
+    </a>
+    <div class="top-right">
+      <div id="health" class="health" role="status" aria-live="polite"></div>
+      <button id="theme" class="icon-btn theme-btn" type="button" aria-label="Switch to light theme">
+        <svg class="icon" aria-hidden="true"><use href="/icons.svg#sun"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="console">
+    <section class="col col-input" aria-labelledby="input-title">
+      <div class="col-head">
+        <h1 id="input-title" class="caps">Transaction</h1>
+        <span id="detected" class="detected" aria-live="polite"></span>
+      </div>
+      <div class="rule"></div>
+
+      <label class="sr-only" for="txs">Raw transaction hex</label>
+      <div class="field brackets">
+        <textarea id="txs" class="hex" rows="7" spellcheck="false" autocomplete="off" autocapitalize="off"
+          placeholder="Paste raw transaction hex. For a package, one per line: parents first, child last."></textarea>
+      </div>
+
+      <div class="tools">
+        <div class="dd" id="examples">
+          <button id="example-btn" class="btn brackets dd-btn" type="button"
+            aria-haspopup="listbox" aria-expanded="false" aria-controls="example-list">
+            <svg class="icon" aria-hidden="true"><use href="/icons.svg#file-code"/></svg>
+            <span>Examples</span>
+            <svg class="icon chev" aria-hidden="true"><use href="/icons.svg#down"/></svg>
+          </button>
+          <div class="dd-pop" id="example-pop">
+            <div id="example-list" class="dd-list" role="listbox" aria-label="Examples" tabindex="-1"></div>
+          </div>
+        </div>
+        <button id="paste" class="btn brackets" type="button">
+          <svg class="icon" aria-hidden="true"><use href="/icons.svg#paste"/></svg><span>Paste</span>
+        </button>
+        <button id="clear" class="btn brackets" type="button">
+          <svg class="icon" aria-hidden="true"><use href="/icons.svg#eraser"/></svg><span>Clear</span>
+        </button>
+      </div>
+
+      <div class="rule"></div>
+      <details id="mempool-box" class="mempool">
+        <summary>
+          <svg class="icon" aria-hidden="true"><use href="/icons.svg#inbox"/></svg>
+          <span>Mempool before your transaction</span>
+          <span id="mempool-count" class="count" hidden></span>
+          <svg class="icon chev" aria-hidden="true"><use href="/icons.svg#down"/></svg>
+        </summary>
+        <p class="hint">Loaded in order, one per line, before your transaction is checked. Use it for fee bumps (RBF), conflicts and unconfirmed chains.</p>
+        <label class="sr-only" for="mempool">Mempool transactions</label>
+        <div class="field brackets">
+          <textarea id="mempool" class="hex" rows="4" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Optional"></textarea>
+        </div>
+      </details>
+      <div class="rule"></div>
+
+      <button id="check" class="btn btn-primary brackets" type="button">
+        <svg class="icon" aria-hidden="true"><use href="/icons.svg#play"/></svg>
+        <span id="check-label">Check every version</span>
+        <span class="keys" aria-hidden="true"><kbd>⌘</kbd><kbd>↵</kbd></span>
+      </button>
+      <div id="error" class="error" role="alert" hidden></div>
+    </section>
+
+    <section id="result" class="col col-result" aria-live="polite" aria-busy="false"></section>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <svg class="icon" aria-hidden="true"><use href="/icons.svg#information"/></svg>
+  <span>Accepted into a node's mempool doesn't guarantee a transaction spreads across the network or gets mined. Peers and miners can run other policies. Nothing here is broadcast.</span>
+</footer>
+</body>
+</html>

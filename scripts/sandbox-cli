@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# bitcoin-cli for the sandbox's builder wallet.
+#
+#   scripts/sandbox-cli getnewaddress
+#   scripts/sandbox-cli -named send outputs='{"bcrt1...": 0.001}' fee_rate=0.5 options='{"add_to_wallet": false}'
+#
+# With add_to_wallet=false the wallet returns signed hex without broadcasting it,
+# which is exactly what `sbx check` wants.
+set -euo pipefail
+home="${SBX_HOME:-$(cd "$(dirname "$0")/../.." && pwd)/.sbx}"
+cli=$(ls "$home"/bin/core-31.1/*/bin/bitcoin-cli 2>/dev/null | head -n1)
+if [[ -z "$cli" ]]; then
+  echo "bitcoin-cli not found under $home/bin; run: sbx fetch" >&2
+  exit 1
+fi
+exec "$cli" -regtest -rpcport=19450 -rpcuser=sbx -rpcpassword="$(cat "$home/rpc-password")" -rpcwallet=sbx "$@"
