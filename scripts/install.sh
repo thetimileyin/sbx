@@ -4,8 +4,7 @@
 #   sh install.sh                     # latest release into ~/.local/bin
 #   SBX_PREFIX=/usr/local/bin sh install.sh
 #
-# Uses the GitHub CLI when available (needed while the repository is private),
-# otherwise plain HTTPS downloads. The archive is checked against the release's
+# Uses the GitHub CLI when it's logged in, otherwise plain HTTPS downloads. The archive is checked against the release's
 # SHA256SUMS before anything is installed.
 set -eu
 

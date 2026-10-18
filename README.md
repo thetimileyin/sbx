@@ -12,7 +12,7 @@ From a release (macOS or Linux, Intel or ARM):
 curl -fsSL https://raw.githubusercontent.com/thetimileyin/sbx/main/scripts/install.sh | sh
 ```
 
-While the repository is private, the script uses the GitHub CLI (`gh auth login` first). It checks the archive against the release's `SHA256SUMS` before installing to `~/.local/bin`.
+It checks the archive against the release's `SHA256SUMS` before installing to `~/.local/bin`, and uses the GitHub CLI instead of plain downloads when you're logged in.
 
 From source (Go 1.24+):
 
