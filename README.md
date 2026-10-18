@@ -102,3 +102,7 @@ The **golden test set** (`internal/engine/engine_test.go`) records each version'
 ## Releases
 
 `scripts/release.sh v0.1.0` builds `dist/sbx_<os>_<arch>.tar.gz` for darwin/linux × arm64/amd64 plus `SHA256SUMS`. Pushing a `v*` tag runs the same script in GitHub Actions and publishes a release. Every push runs unit tests on Linux and macOS, plus a Linux integration job that fetches all releases (with signature checks), starts the network and runs the golden corpus.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

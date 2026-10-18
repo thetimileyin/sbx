@@ -19,7 +19,7 @@ for target in darwin/arm64 darwin/amd64 linux/amd64 linux/arm64; do
   mkdir -p "$stage"
   CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
     -ldflags "-s -w -X main.version=${version}" -o "$stage/sbx" ./cmd/sbx
-  cp README.md "$stage/"
+  cp README.md LICENSE "$stage/"
   cp scripts/sandbox-cli "$stage/"
   tar -C dist -czf "dist/$name.tar.gz" "$name"
   rm -rf "$stage"
