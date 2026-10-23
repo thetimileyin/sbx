@@ -23,16 +23,10 @@ type Release struct {
 	Base    string // release directory URL, ending in "/"
 }
 
-// Matrix is every version a transaction is checked against, oldest Core first.
+// Matrix is every version a transaction is checked against, oldest Core first, as
+// listed in matrix.json (which the release watcher, cmd/sbx-watch, keeps current).
 // Pin exact releases: results are only meaningful if everyone runs the same binaries.
-var Matrix = []Release{
-	{"core-28.4", "Core 28.4", "core", "28.4", "https://bitcoincore.org/bin/bitcoin-core-28.4/"},
-	{"core-29.4", "Core 29.4", "core", "29.4", "https://bitcoincore.org/bin/bitcoin-core-29.4/"},
-	{"core-30.3", "Core 30.3", "core", "30.3", "https://bitcoincore.org/bin/bitcoin-core-30.3/"},
-	{"core-31.1", "Core 31.1", "core", "31.1", "https://bitcoincore.org/bin/bitcoin-core-31.1/"},
-	{"knots-29.4.2", "Knots 29.4.2", "knots", "29.4.2.knots20260508",
-		"https://bitcoinknots.org/files/29.x/29.4.2.knots20260508/"},
-}
+var Matrix = mustParseMatrix(matrixJSON)
 
 // Newest returns the last release of the given implementation in the matrix.
 func Newest(impl string) Release {

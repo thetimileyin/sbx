@@ -2,10 +2,14 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/thetimileyin/sbx/internal/release"
 )
 
 func TestSerialize(t *testing.T) {
@@ -83,51 +87,50 @@ func TestAgreement(t *testing.T) {
 	}
 }
 
-// Golden corpus: what each version did with each example when the spike was run on
-// 2026-10-15. Order follows release.Matrix: Core 28.4, 29.4, 30.3, 31.1, Knots 29.4.2.
-// A new release, or a regression in sbx, shows up here first.
-var golden = map[string]string{
-	"plain":              "AAAAA",
-	"fee-0.5":            "AAAAR",
-	"fee-0.1":            "AAAAR",
-	"opreturn-80":        "AAAAA",
-	"opreturn-100":       "RRAAR",
-	"opreturn-two":       "RRAAR",
-	"dust":               "RRRRR",
-	"v3":                 "AAAAA",
-	"v3-zero":            "RRRRR",
-	"locktime-future":    "RRRRR",
-	"relative-lock":      "AAAAA",
-	"pkg-baseline":       "AAAAA",
-	"pkg-cpfp-zero-v2":   "RRRAR",
-	"pkg-cpfp-low-v2":    "AAAAR",
-	"pkg-truc-zero":      "AAAAR",
-	"pkg-anchor":         "RAAAR",
-	"pkg-truc-big-child": "RRRRR",
-	"pkg-multisig":       "AAAAA",
-	"rbf-bump":           "AAAAA",
-	"rbf-small":          "AAAAR",
-	"rbf-no-signal":      "AAAAA",
-	"rbf-same-fee":       "RRRRR",
-	"rbf-underpay-child": "RRRRR",
-	"chain-26":           "RRRAR",
-}
-
+// Golden corpus: what each release line did with each example, recorded from the
+// official release binaries. Keyed by line ("core-31", "knots-29") so a patch release
+// is held to its line's expectations, and a release line with no expectations yet
+// (a new major version) is reported rather than failed.
+//
 // Run with: SBX_INTEGRATION=1 SBX_HOME=... go test ./internal/engine -run Golden
-// (nodes must be up: sbx up).
+// (nodes must be up: sbx up). SBX_GOLDEN_REPORT=file.md also writes a Markdown table.
 func TestGolden(t *testing.T) {
 	if os.Getenv("SBX_INTEGRATION") == "" {
 		t.Skip("set SBX_INTEGRATION=1 with running nodes to run the golden corpus")
+	}
+	raw, err := os.ReadFile("testdata/golden.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var golden struct {
+		Examples map[string]map[string]string `json:"examples"`
+	}
+	if err := json.Unmarshal(raw, &golden); err != nil {
+		t.Fatal(err)
+	}
+	if len(golden.Examples) != len(Examples()) {
+		t.Fatalf("golden.json has %d examples, Examples() has %d", len(golden.Examples), len(Examples()))
 	}
 	e, err := Open(DefaultHome())
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
-	if len(golden) != len(Examples()) {
-		t.Fatalf("golden has %d entries, examples has %d", len(golden), len(Examples()))
+
+	// Lines with no recorded expectations at all are new.
+	newLine := map[string]bool{}
+	for _, r := range e.Matrix {
+		newLine[r.Line()] = true
+		for _, exp := range golden.Examples {
+			if _, ok := exp[r.Line()]; ok {
+				newLine[r.Line()] = false
+				break
+			}
+		}
 	}
+
+	got := map[string]map[string]string{}
 	for _, ex := range Examples() {
 		t.Run(ex.ID, func(t *testing.T) {
 			req, err := e.BuildExample(ctx, ex.ID)
@@ -138,22 +141,80 @@ func TestGolden(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var got strings.Builder
-			for _, v := range res.Verdicts {
+			got[ex.ID] = map[string]string{}
+			for i, v := range res.Verdicts {
+				line := e.Matrix[i].Line()
+				verdict := "R"
 				switch {
 				case v.Error != "":
-					got.WriteByte('E')
+					verdict = "E"
 				case v.Accepted:
-					got.WriteByte('A')
-				default:
-					got.WriteByte('R')
+					verdict = "A"
 				}
-			}
-			if got.String() != golden[ex.ID] {
-				t.Errorf("got %s, want %s", got.String(), golden[ex.ID])
+				got[ex.ID][line] = verdict
+				if newLine[line] {
+					continue
+				}
+				if want := golden.Examples[ex.ID][line]; verdict != want {
+					t.Errorf("%s (%s): got %s, want %s", e.Matrix[i].Label, line, verdict, want)
+				}
 			}
 		})
 	}
+	if path := os.Getenv("SBX_GOLDEN_REPORT"); path != "" {
+		if err := os.WriteFile(path, []byte(goldenReport(e.Matrix, newLine, golden.Examples, got)), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// goldenReport renders every example's verdict per release, marking new lines and
+// any change compared with the previous line of the same implementation.
+func goldenReport(m []release.Release, newLine map[string]bool, want, got map[string]map[string]string) string {
+	var b strings.Builder
+	b.WriteString("| Example |")
+	for _, r := range m {
+		label := r.Label
+		if newLine[r.Line()] {
+			label += " (new)"
+		}
+		b.WriteString(" " + label + " |")
+	}
+	b.WriteString(" Notes |\n|---|")
+	for range m {
+		b.WriteString("---|")
+	}
+	b.WriteString("---|\n")
+	mark := map[string]string{"A": "✓", "R": "✗", "E": "⚠", "": "–"}
+	changes := 0
+	for _, ex := range Examples() {
+		b.WriteString("| " + ex.Title + " |")
+		var notes []string
+		for i, r := range m {
+			v := got[ex.ID][r.Line()]
+			cell := mark[v]
+			if w, ok := want[ex.ID][r.Line()]; ok && !newLine[r.Line()] && w != v {
+				cell = "**" + cell + "**"
+				notes = append(notes, fmt.Sprintf("%s changed from %s", r.Label, mark[w]))
+			}
+			if newLine[r.Line()] {
+				for j := i - 1; j >= 0; j-- {
+					if m[j].Impl == r.Impl {
+						if prev := got[ex.ID][m[j].Line()]; prev != v {
+							cell = "**" + cell + "**"
+							notes = append(notes, fmt.Sprintf("%s differs from %s", r.Label, m[j].Label))
+							changes++
+						}
+						break
+					}
+				}
+			}
+			b.WriteString(" " + cell + " |")
+		}
+		b.WriteString(" " + strings.Join(notes, "; ") + " |\n")
+	}
+	fmt.Fprintf(&b, "\n%d of %d examples behave differently on the new release lines.\n", changes, len(Examples()))
+	return b.String()
 }
 
 func TestDescribeScript(t *testing.T) {

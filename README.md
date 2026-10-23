@@ -120,9 +120,15 @@ The **golden test set** (`internal/engine/engine_test.go`) records each version'
 ## Not done yet
 
 - An explanation dictionary generated from each release's source. It's hand-written for now.
-- A release watcher, a GitHub Action and an MCP server.
+- An MCP server.
 - A full-mempool fee floor, and packages with mempool setup packages.
 - Core 32.0, once it leaves release candidate.
+
+## Keeping up with new node releases
+
+`.github/workflows/watch.yml` runs daily. `cmd/sbx-watch` looks for new **final** Core and Knots releases (release candidates are ignored), verifies their builder signatures, and updates `internal/release/matrix.json`: patch releases replace their line's entry, new Core majors are added, Knots keeps its newest release. The workflow then runs every example against the new matrix and opens a pull request with a table of results. Patch releases are held to their line's recorded behaviour in `internal/engine/testdata/golden.json`; a new major line is reported against the previous one.
+
+Try it locally: `go run ./cmd/sbx-watch` (or `--from internal/release/testdata/older-matrix.json` to see what an update looks like).
 
 ## Releases
 

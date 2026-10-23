@@ -25,10 +25,11 @@ import (
 )
 
 const (
-	basePort   = 19400 // node i: rpc basePort+10i, p2p +1
-	walletName = "sbx"
-	rpcUser    = "sbx"
-	minHeight  = 140 // stay below 150 so every coinbase is a full 50 BTC
+	basePort    = 19400 // matrix node i: rpc basePort+10i (skipping builderPort), p2p +1
+	builderPort = 19450 // fixed: sandbox-cli, the GitHub Action and users' code rely on it
+	walletName  = "sbx"
+	rpcUser     = "sbx"
+	minHeight   = 140 // stay below 150 so every coinbase is a full 50 BTC
 )
 
 type Engine struct {
@@ -87,14 +88,24 @@ type node struct {
 func (e *Engine) nodes() []node {
 	var out []node
 	for i, r := range e.Matrix {
-		out = append(out, node{r.Name, r.Label, r, basePort + 10*i, false})
+		out = append(out, node{r.Name, r.Label, r, nodePort(i), false})
 	}
 	return append(out, node{"builder", "Builder (" + e.Builder.Label + ")", e.Builder, e.builderPort(), true})
 }
 
 func (e *Engine) matrixNodes() []node { return e.nodes()[:len(e.Matrix)] }
 
-func (e *Engine) builderPort() int         { return basePort + 10*len(e.Matrix) }
+func (e *Engine) builderPort() int { return builderPort }
+
+// nodePort is matrix node i's RPC port. It never lands on the builder's port, so the
+// matrix can grow without moving the sandbox wallet.
+func nodePort(i int) int {
+	p := basePort + 10*i
+	if p >= builderPort {
+		p += 10
+	}
+	return p
+}
 func (e *Engine) rpc(port int) *rpc.Client { return rpc.New(port, rpcUser, e.pass) }
 func (e *Engine) builder() *rpc.Client     { return e.rpc(e.builderPort()) }
 func (e *Engine) wallet() *rpc.Client      { return e.builder().Wallet(walletName) }

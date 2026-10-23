@@ -1,0 +1,173 @@
+{
+  "_comment": "Expected verdict (A accept, R reject) per example and release line, from official release binaries. A patch release must match its line; a new line is reported, not checked. Recorded 2026-10-15.",
+  "examples": {
+    "plain": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "A"
+    },
+    "fee-0.5": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "R"
+    },
+    "fee-0.1": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "R"
+    },
+    "opreturn-80": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "A"
+    },
+    "opreturn-100": {
+      "core-28": "R",
+      "core-29": "R",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "R"
+    },
+    "opreturn-two": {
+      "core-28": "R",
+      "core-29": "R",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "R"
+    },
+    "dust": {
+      "core-28": "R",
+      "core-29": "R",
+      "core-30": "R",
+      "core-31": "R",
+      "knots-29": "R"
+    },
+    "v3": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "A"
+    },
+    "v3-zero": {
+      "core-28": "R",
+      "core-29": "R",
+      "core-30": "R",
+      "core-31": "R",
+      "knots-29": "R"
+    },
+    "locktime-future": {
+      "core-28": "R",
+      "core-29": "R",
+      "core-30": "R",
+      "core-31": "R",
+      "knots-29": "R"
+    },
+    "relative-lock": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "A"
+    },
+    "pkg-baseline": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "A"
+    },
+    "pkg-cpfp-zero-v2": {
+      "core-28": "R",
+      "core-29": "R",
+      "core-30": "R",
+      "core-31": "A",
+      "knots-29": "R"
+    },
+    "pkg-cpfp-low-v2": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "R"
+    },
+    "pkg-truc-zero": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "R"
+    },
+    "pkg-anchor": {
+      "core-28": "R",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "R"
+    },
+    "pkg-truc-big-child": {
+      "core-28": "R",
+      "core-29": "R",
+      "core-30": "R",
+      "core-31": "R",
+      "knots-29": "R"
+    },
+    "pkg-multisig": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "A"
+    },
+    "rbf-bump": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "A"
+    },
+    "rbf-small": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "R"
+    },
+    "rbf-no-signal": {
+      "core-28": "A",
+      "core-29": "A",
+      "core-30": "A",
+      "core-31": "A",
+      "knots-29": "A"
+    },
+    "rbf-same-fee": {
+      "core-28": "R",
+      "core-29": "R",
+      "core-30": "R",
+      "core-31": "R",
+      "knots-29": "R"
+    },
+    "rbf-underpay-child": {
+      "core-28": "R",
+      "core-29": "R",
+      "core-30": "R",
+      "core-31": "R",
+      "knots-29": "R"
+    },
+    "chain-26": {
+      "core-28": "R",
+      "core-29": "R",
+      "core-30": "R",
+      "core-31": "A",
+      "knots-29": "R"
+    }
+  }
+}

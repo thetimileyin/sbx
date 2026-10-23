@@ -1,0 +1,97 @@
+name: watch releases
+
+# Daily: look for new final Bitcoin Core and Knots releases. When there are any, update
+# the matrix, run every example against it, and open a pull request with the results.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Report only; don't open a pull request.
+        type: boolean
+        default: false
+      from:
+        description: Start from this matrix file instead (testing), e.g. internal/release/testdata/older-matrix.json
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Look for new releases
+        id: watch
+        env:
+          FROM: ${{ inputs.from }}
+        run: |
+          args=(--write --summary "$RUNNER_TEMP/summary.md")
+          if [ -n "$FROM" ]; then args+=(--from "$FROM"); fi
+          go run ./cmd/sbx-watch "${args[@]}"
+
+      - name: Run every example against the new matrix
+        id: golden
+        if: steps.watch.outputs.changed == 'true'
+        run: |
+          export SBX_HOME="$RUNNER_TEMP/sbx"
+          go build -o bin/sbx ./cmd/sbx
+          ./bin/sbx fetch
+          ./bin/sbx up
+          if SBX_INTEGRATION=1 SBX_GOLDEN_REPORT="$RUNNER_TEMP/report.md" go test ./internal/engine -run Golden -count=1; then
+            echo "result=pass" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=fail" >> "$GITHUB_OUTPUT"
+          fi
+          ./bin/sbx down
+
+      - name: Write the pull request body
+        if: steps.watch.outputs.changed == 'true'
+        env:
+          RESULT: ${{ steps.golden.outputs.result }}
+        run: |
+          {
+            cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo "### How every example behaves"
+            echo
+            if [ "$RESULT" = "pass" ]; then
+              echo "Existing release lines behave exactly as recorded in \`internal/engine/testdata/golden.json\`."
+            else
+              echo "**At least one existing release line changed behaviour** (bold cells below). Check whether that's a real policy change before merging, and update \`golden.json\` if it is."
+            fi
+            echo
+            cat "$RUNNER_TEMP/report.md" 2>/dev/null || echo "_The example run didn't produce a report; see the workflow log._"
+            echo
+            echo "New release lines have no recorded expectations yet. If their results look right, add them to \`golden.json\` in this pull request."
+            echo
+            echo "_Opened by the release watcher (\`.github/workflows/watch.yml\`)._"
+          } > "$RUNNER_TEMP/body.md"
+          cat "$RUNNER_TEMP/body.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open a pull request
+        if: steps.watch.outputs.changed == 'true' && !inputs.dry_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SLUG: ${{ steps.watch.outputs.slug }}
+          TITLE: ${{ steps.watch.outputs.title }}
+        run: |
+          branch="watch/$SLUG"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "A pull request branch for these releases already exists: $branch"
+            exit 0
+          fi
+          git config user.name "sbx release watcher"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add internal/release/matrix.json
+          git commit -m "$TITLE"
+          git push origin "$branch"
+          gh pr create --title "$TITLE" --body-file "$RUNNER_TEMP/body.md" --base main --head "$branch"

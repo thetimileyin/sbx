@@ -1,0 +1,6 @@
+[
+ {"impl":"core","version":"28.3"},
+ {"impl":"core","version":"29.4"},
+ {"impl":"core","version":"30.2"},
+ {"impl":"knots","version":"29.3.knots20260507"}
+]

@@ -1,0 +1,7 @@
+[
+  { "impl": "core", "version": "28.4" },
+  { "impl": "core", "version": "29.4" },
+  { "impl": "core", "version": "30.3" },
+  { "impl": "core", "version": "31.1" },
+  { "impl": "knots", "version": "29.4.2.knots20260508" }
+]
