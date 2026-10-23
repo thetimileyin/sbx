@@ -1,0 +1,38 @@
+name: action
+
+# Self-test of the GitHub Action in action.yml: build transactions with the sandbox
+# wallet, then check that a normal payment passes and a 0.5 sat/vB payment fails
+# (Knots rejects it), on Linux and macOS.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  self-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        id: sbx
+      - name: Build two transactions with the sandbox wallet
+        run: |
+          addr=$(sbx-sandbox-cli getnewaddress)
+          sbx-sandbox-cli -named send outputs="{\"$addr\": 0.001}" fee_rate=2 options='{"add_to_wallet": false}' | jq -r .hex > ok.txt
+          sbx-sandbox-cli -named send outputs="{\"$addr\": 0.001}" fee_rate=0.5 options='{"add_to_wallet": false}' | jq -r .hex > low.txt
+      - name: A 2 sat/vB payment passes on every version
+        run: sbx check --file ok.txt
+      - name: A 0.5 sat/vB payment fails (Knots rejects it)
+        run: |
+          set +e
+          sbx check --file low.txt
+          code=$?
+          [ "$code" -eq 3 ] || { echo "expected exit 3, got $code"; exit 1; }
+      - name: The action's own check input passes
+        uses: ./
+        with:
+          check: ok.txt

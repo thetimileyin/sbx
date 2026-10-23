@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Ask a question or share how you use sbx
+    url: https://github.com/thetimileyin/sbx/discussions
+    about: Questions, ideas and show-and-tell go in Discussions.

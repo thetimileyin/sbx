@@ -1,0 +1,44 @@
+name: Something's missing
+description: What would make sbx useful to you every week?
+title: "[missing] "
+labels: ["feedback"]
+body:
+  - type: dropdown
+    id: role
+    attributes:
+      label: What do you build?
+      options:
+        - Wallet
+        - Lightning node or LSP
+        - Exchange or custody withdrawals
+        - Payment processing
+        - Ark, ecash or another layer
+        - Something else
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where would you use sbx?
+      multiple: true
+      options:
+        - While developing
+        - In CI
+        - Debugging a user's stuck payment
+        - Researching relay policy
+  - type: textarea
+    id: missing
+    attributes:
+      label: What's missing?
+      description: For example real mainnet transactions, Lightning or Ark nodes in the sandbox, a GitHub Action input, more node versions.
+    validations:
+      required: true
+  - type: dropdown
+    id: pay
+    attributes:
+      label: Would your team pay for hosted checks of real mainnet transactions?
+      options:
+        - "Yes, per check in sats"
+        - "Yes, per team"
+        - "Maybe"
+        - "No"

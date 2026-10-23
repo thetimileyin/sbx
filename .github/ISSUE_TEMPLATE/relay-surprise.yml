@@ -1,0 +1,36 @@
+name: A result surprised me
+description: sbx said a version accepts or rejects something you didn't expect, or explained it badly.
+title: "[surprise] "
+labels: ["relay-result"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for checking this. Raw hex helps most: regtest transactions from sbx's sandbox contain nothing private.
+        Please don't paste mainnet transactions you haven't broadcast yet.
+  - type: textarea
+    id: what
+    attributes:
+      label: What did you check?
+      description: What the transaction does, e.g. "fee bump of a v3 parent with an anchor".
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What sbx said, and what you expected
+      description: Which versions accepted or rejected it, and why you expected otherwise.
+    validations:
+      required: true
+  - type: textarea
+    id: hex
+    attributes:
+      label: Transaction hex (optional)
+      description: One per line, parents first for a package. Add mempool setup transactions after a line saying "mempool".
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: sbx version
+      description: Output of `sbx version`.
+      placeholder: sbx v0.1.1

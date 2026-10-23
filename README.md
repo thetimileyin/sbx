@@ -59,6 +59,31 @@ Data lives in `$SBX_HOME` (default `~/.sbx`).
 
 **Only sandbox coins can be checked.** A real mainnet transaction spends coins that don't exist on regtest. Checking those needs pruned mainnet nodes, which is phase 3 in the outline.
 
+## GitHub Action
+
+Add relay checks to CI. The action installs a verified sbx release, starts every node
+version on regtest (cached between runs) and exposes the sandbox wallet's RPC so your
+code can build transactions. With `check`, the step fails if any version rejects them.
+
+```yaml
+- uses: thetimileyin/sbx@v0
+  id: sbx
+
+# Build transactions with your own code against the sandbox wallet:
+#   ${{ steps.sbx.outputs.rpc-url }}  user: sbx  password: ${{ steps.sbx.outputs.rpc-password }}
+# or with the bundled helper:
+- run: |
+    addr=$(sbx-sandbox-cli getnewaddress)
+    sbx-sandbox-cli -named send outputs="{\"$addr\": 0.001}" fee_rate=1 \
+      options='{"add_to_wallet": false}' | jq -r .hex > txs.txt
+
+- run: sbx check --file txs.txt   # exits 3 if any version rejects
+```
+
+Inputs: `version` (default `latest`), `check` (file of transaction hex), `mempool`
+(file of setup transactions), `skip-signatures`. Outputs: `version`, `rpc-url`,
+`rpc-user`, `rpc-password`. Linux and macOS runners.
+
 ## Web page and API
 
 The page is served from the binary itself, with no CDN and no external requests.

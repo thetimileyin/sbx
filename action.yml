@@ -1,0 +1,73 @@
+name: sbx relay check
+description: Check Bitcoin transactions against Bitcoin Core 28–31 and Knots on a private regtest network, and fail if any version rejects them.
+author: thetimileyin
+branding:
+  icon: check-circle
+  color: orange
+
+inputs:
+  version:
+    description: sbx release to install, e.g. v0.1.1, or "latest".
+    default: latest
+  check:
+    description: >
+      Optional path to a file of raw transaction hex, one per line (a package is parents
+      first, child last). When set, the step fails if any node version rejects it.
+      Transactions must spend coins from the sandbox wallet (see the rpc-* outputs).
+    default: ""
+  mempool:
+    description: Optional path to a file of transactions loaded into the mempool before the check (fee bumps, chains).
+    default: ""
+  skip-signatures:
+    description: Set to "true" to skip builder-signature checks on the node downloads (not recommended).
+    default: "false"
+
+outputs:
+  version:
+    description: The sbx version that was installed.
+    value: ${{ steps.install.outputs.version }}
+  rpc-url:
+    description: JSON-RPC URL of the sandbox wallet, for building transactions in later steps.
+    value: http://127.0.0.1:19450/wallet/sbx
+  rpc-user:
+    description: RPC username.
+    value: sbx
+  rpc-password:
+    description: RPC password (also in $SBX_HOME/rpc-password).
+    value: ${{ steps.up.outputs.password }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install sbx
+      id: install
+      shell: bash
+      env:
+        SBX_VERSION: ${{ inputs.version }}
+      run: '"$GITHUB_ACTION_PATH/scripts/action-install.sh"'
+
+    - name: Cache node releases
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/sbx/bin
+        key: sbx-nodes-${{ runner.os }}-${{ runner.arch }}-${{ steps.install.outputs.version }}
+
+    - name: Start the node versions
+      id: up
+      shell: bash
+      run: |
+        if [ "${{ inputs.skip-signatures }}" = "true" ]; then sbx fetch --skip-signatures; else sbx fetch; fi
+        sbx up
+        echo "::add-mask::$(cat "$SBX_HOME/rpc-password")"
+        echo "password=$(cat "$SBX_HOME/rpc-password")" >> "$GITHUB_OUTPUT"
+
+    - name: Check transactions
+      if: inputs.check != ''
+      shell: bash
+      env:
+        SBX_CHECK: ${{ inputs.check }}
+        SBX_MEMPOOL: ${{ inputs.mempool }}
+      run: |
+        args=(--file "$SBX_CHECK")
+        if [ -n "$SBX_MEMPOOL" ]; then args+=(--mempool "$SBX_MEMPOOL"); fi
+        sbx check "${args[@]}"
