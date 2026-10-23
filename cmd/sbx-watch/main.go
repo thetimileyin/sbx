@@ -2,16 +2,19 @@
 // internal/release/matrix.json. Run daily by .github/workflows/watch.yml.
 //
 // Policy:
+//
 //   - Core: for every major line already in the matrix, move to its newest final patch;
 //     add any major line newer than the newest one listed. Old lines are never dropped
 //     automatically.
+//
 //   - Knots: keep one entry, the newest final release.
+//
 //   - Release candidates are ignored: a release only counts once its directory has a
 //     SHA256SUMS signed by at least release.MinSignatures known builders.
 //
-//	go run ./cmd/sbx-watch                 # print what would change
-//	go run ./cmd/sbx-watch --write         # update matrix.json
-//	go run ./cmd/sbx-watch --from old.json # start from another matrix (testing)
+//     go run ./cmd/sbx-watch                 # print what would change
+//     go run ./cmd/sbx-watch --write         # update matrix.json
+//     go run ./cmd/sbx-watch --from old.json # start from another matrix (testing)
 package main
 
 import (
