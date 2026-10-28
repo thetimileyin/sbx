@@ -7,7 +7,7 @@ three of these keys produced a valid signature.
 | File | Source | Keys |
 |---|---|---|
 | `core.gpg` | https://github.com/bitcoin-core/guix.sigs/tree/main/builder-keys | 40 |
-| `knots.gpg` | https://github.com/bitcoinknots/guix.sigs/tree/knots/builder-keys | 20 |
+| `knots.gpg` | https://github.com/bitcoinknots/guix.sigs/tree/knots/builder-keys | 21 |
 
-Fetched on 2026-10-17 and converted from ASCII armour to a binary keyring with
+Core keys fetched on 2026-10-17, Knots keys on 2026-10-28, and converted from ASCII armour to a binary keyring with
 `gpg --dearmor`. Refresh them when the upstream builder lists change.

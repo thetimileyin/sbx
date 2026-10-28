@@ -19,6 +19,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -77,17 +78,31 @@ func main() {
 		fail(fmt.Errorf("listing Knots releases: %w", err))
 	}
 
+	// A release with too few known signatures yet is left out and tried again on the
+	// next run; builders often sign over the days after a release.
+	var waiting []change
 	next, changes := plan(matrix, core, knots)
-	for i := range changes {
+	for i := 0; i < len(changes); i++ {
 		c := &changes[i]
 		n, err := verify(c.New)
+		c.Signers = n
+		if errors.Is(err, release.ErrTooFewSignatures) {
+			waiting = append(waiting, *c)
+			if c.New.Impl == "knots" {
+				knots = release.Release{}
+			} else {
+				delete(core, c.New.Major())
+			}
+			next, changes = plan(matrix, core, knots)
+			i = -1 // re-verify the reduced plan from the start
+			continue
+		}
 		if err != nil {
 			fail(fmt.Errorf("%s: %w", c.New.Label, err))
 		}
-		c.Signers = n
 	}
 
-	text := describe(changes)
+	text := describe(changes) + describeWaiting(waiting)
 	fmt.Print(text)
 	if *summary != "" {
 		if err := os.WriteFile(*summary, []byte(text), 0o644); err != nil {
@@ -291,6 +306,18 @@ func describe(changes []change) string {
 			fmt.Fprintf(&b, "- **%s → %s**", c.Old.Label, c.New.Label)
 		}
 		fmt.Fprintf(&b, ": SHA256SUMS signed by %d builders (need %d). [Release files](%s)\n", c.Signers, release.MinSignatures, c.New.Base)
+	}
+	return b.String()
+}
+
+func describeWaiting(waiting []change) string {
+	if len(waiting) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("\n### Waiting for signatures\n\n")
+	for _, c := range waiting {
+		fmt.Fprintf(&b, "- **%s**: SHA256SUMS signed by %d known builders so far (need %d). Checked again on the next run; if it stays short, the bundled keys in `internal/release/keys/` may need refreshing. [Release files](%s)\n", c.New.Label, c.Signers, release.MinSignatures, c.New.Base)
 	}
 	return b.String()
 }

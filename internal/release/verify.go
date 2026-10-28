@@ -23,6 +23,10 @@ const MinSignatures = 3
 // ErrNoGPGV means signature checking isn't possible on this machine.
 var ErrNoGPGV = errors.New("gpgv not found: install GnuPG (macOS: brew install gnupg; Debian/Ubuntu: apt install gpgv) or pass --skip-signatures")
 
+// ErrTooFewSignatures means fewer than MinSignatures bundled builders signed SHA256SUMS.
+// For a fresh release this is often temporary: more builders sign over the following days.
+var ErrTooFewSignatures = errors.New("refusing to trust it")
+
 func gpgvPath() (string, error) {
 	if p, err := exec.LookPath("gpgv"); err == nil {
 		return p, nil
@@ -84,7 +88,7 @@ func VerifySums(impl string, sums, sig []byte) ([]string, error) {
 		}
 	}
 	if len(good) < MinSignatures {
-		return good, fmt.Errorf("only %d valid builder signatures on SHA256SUMS (need %d); refusing to trust it", len(good), MinSignatures)
+		return good, fmt.Errorf("only %d valid builder signatures on SHA256SUMS (need %d); %w", len(good), MinSignatures, ErrTooFewSignatures)
 	}
 	return good, nil
 }
