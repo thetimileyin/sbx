@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/thetimileyin/sbx/internal/engine"
+	"github.com/thetimileyin/sbx/internal/network"
 )
 
 //go:embed static
@@ -21,7 +22,9 @@ var static embed.FS
 
 const maxBody = 4 << 20
 
-func Handler(e *engine.Engine, port string) http.Handler {
+// Handler serves the page and API. snapshot supplies node counts for weighing
+// verdicts; it may return nil.
+func Handler(e *engine.Engine, port string, snapshot func() *network.Snapshot) http.Handler {
 	mux := http.NewServeMux()
 	files, _ := fs.Sub(static, "static")
 	mux.Handle("GET /", http.FileServerFS(files))
@@ -51,6 +54,7 @@ func Handler(e *engine.Engine, port string) http.Handler {
 			writeError(w, http.StatusUnprocessableEntity, err)
 			return
 		}
+		res.AddNetwork(snapshot())
 		writeJSON(w, http.StatusOK, res)
 	})
 
@@ -114,14 +118,14 @@ func CheckAddr(addr string) (string, error) {
 }
 
 // Serve listens on addr, which must be a loopback address.
-func Serve(ctx context.Context, e *engine.Engine, addr string) error {
+func Serve(ctx context.Context, e *engine.Engine, addr string, snapshot func() *network.Snapshot) error {
 	port, err := CheckAddr(addr)
 	if err != nil {
 		return err
 	}
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           Handler(e, port),
+		Handler:           Handler(e, port, snapshot),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	go func() {

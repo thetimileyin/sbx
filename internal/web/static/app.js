@@ -314,7 +314,39 @@ function versionRow(label, state, i, opts = {}) {
         el("span", { class: "vstate" },
           ic ? icon(ic, "spin") : el("span", { class: "sdot", "aria-hidden": "true" }), word),
         opts.odd ? el("span", { class: "sr-only" }, "Differs from the majority") : null),
-      el("div", { class: "vsub" }, agentTag(label))));
+      el("div", { class: "vsub" }, agentTag(label))),
+    opts.share != null ? shareCell(opts.share) : null);
+}
+
+// Share of reachable nodes on this version's release line, with a small meter.
+function pct(f) {
+  return f > 0 && f < 0.005 ? "<1%" : `${Math.round(f * 100)}%`;
+}
+
+function shareCell(share) {
+  return el("div", { class: "vshare", title: "Share of reachable nodes on this release line" },
+    el("span", { class: "num" }, pct(share)),
+    el("span", { class: "meter", "aria-hidden": "true" },
+      el("span", { style: `width: ${Math.min(100, share * 100).toFixed(1)}%` })),
+    el("span", { class: "sr-only" }, "of reachable nodes"));
+}
+
+const dateFmt = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+
+function networkSection(n) {
+  const segs = [["accept", n.accepted, "accept"], ["reject", n.rejected, "reject"], ["other", n.untested, "run versions sbx doesn’t test"]];
+  return el("section", { class: "section" },
+    el("h3", { class: "caps" }, icon("server"), "On the network"),
+    el("div", { class: "netbar", role: "img",
+      "aria-label": `${pct(n.accepted)} of reachable nodes run a version that accepts it, ${pct(n.rejected)} one that rejects it, ${pct(n.untested)} a version sbx doesn’t test` },
+      segs.filter(([, f]) => f > 0).map(([cls, f]) => el("span", { class: cls, style: `flex-grow: ${f}` }))),
+    el("ul", { class: "netkey" },
+      segs.map(([cls, f, word]) => el("li", { class: cls },
+        el("span", { class: "swatch", "aria-hidden": "true" }), el("b", {}, pct(f)), ` ${word}`))),
+    el("p", { class: "netcap" },
+      `Share of ${n.nodes.toLocaleString()} reachable nodes, by the release line each tested version belongs to. ` +
+      `${n.source} snapshot, ${dateFmt.format(new Date(n.taken))} UTC. ` +
+      "Counts only nodes that accept connections. Whether a transaction reaches a miner also depends on how nodes connect and what miners run."));
 }
 
 function versionList(cells) {
@@ -421,6 +453,11 @@ function render(r) {
   }
   if (r.mempool_txs) summary += `. Checked against ${plural(r.mempool_txs, "mempool transaction")}`;
   summary += ".";
+  if (r.network && r.agreement !== "error") {
+    summary += r.network.accepted > 0
+      ? ` Versions on ${pct(r.network.accepted)} of reachable nodes accept it.`
+      : " No tested version on the network accepts it.";
+  }
 
   const copyJson = el("button", { class: "btn brackets ghost", type: "button" }, icon("copy-2"), "Copy JSON");
   copyJson.addEventListener("click", async () => {
@@ -438,8 +475,10 @@ function render(r) {
       el("div", {}, el("h2", {}, title), el("p", {}, summary))),
     versionList(r.verdicts.map((v) => ({
       label: v.label, state: v.error ? "error" : v.accepted ? "accept" : "reject", odd: isOdd(v),
+      share: v.network_share,
     }))),
   ];
+  if (r.network) parts.push(networkSection(r.network));
 
   if (r.notes?.length) {
     parts.push(el("section", { class: "section" },

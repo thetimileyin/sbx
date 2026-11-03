@@ -43,6 +43,7 @@ Data lives in `$SBX_HOME` (default `~/.sbx`).
 | `sbx check --mempool FILE HEX` | Loads FILE's transactions into the mempool first, for fee bumps, conflicts and chain limits |
 | `sbx check --file FILE` / `--file -` | Reads transactions from a file or from stdin |
 | `sbx check --json …` | Prints the result as JSON, the same shape the web page uses |
+| `sbx check --offline …` | Skips the network share (also works for `demo` and `serve`) |
 | `sbx demo [basic\|package\|mempool]` | Runs the 21 built-in examples |
 | `sbx serve [--addr 127.0.0.1:8338]` | Local web page and JSON API |
 
@@ -56,6 +57,12 @@ Data lives in `$SBX_HOME` (default `~/.sbx`).
 4. **Submit** with `sendrawtransaction` for a single transaction, or `submitpackage` for a package. `testmempoolaccept` isn't used, because the spike showed it can't evaluate package fee rates.
 5. **Explain.** The tool separates root causes from knock-on rejections (a child failing only because its parent did). It translates each reject reason into plain language, and names the known policy difference when the versions split.
 6. **Clean up.** Each probe is stopped and its data deleted. The persistent nodes never change, so checks can't affect each other. A check takes about 0.7 seconds.
+
+7. **Weigh by the network.** Each verdict is weighed by how many reachable mainnet nodes run that release line, from the public [Bitnodes](https://bitnodes.io) snapshot. A result reads like "accepted by versions on 39% of reachable nodes, rejected by 34%; 26% run versions sbx doesn't test". Each tested version stands for its whole line (Core 31.1 for every Core 31.x node). Forks with their own policy, such as Libre Relay, count as untested.
+
+    Only the snapshot is downloaded, and it's cached for 6 hours in the data folder. Nothing about your transactions leaves your machine. If Bitnodes can't be reached, a cached snapshot up to a week old is used; otherwise the verdicts are shown without shares. `--offline` turns it off.
+
+    Two limits apply. Bitnodes only counts nodes that accept incoming connections. A share is also not the same as propagation: whether a transaction reaches a miner depends on how nodes connect and what miners run.
 
 **Only sandbox coins can be checked.** A real mainnet transaction spends coins that don't exist on regtest. Checking those needs pruned mainnet nodes, which is phase 3 in the outline.
 
@@ -122,7 +129,7 @@ The **golden test set** (`internal/engine/engine_test.go`) records each version'
 - An explanation dictionary generated from each release's source. It's hand-written for now.
 - An MCP server.
 - A full-mempool fee floor, and packages with mempool setup packages.
-- Core 32.0, once it leaves release candidate.
+- Mining pool policies. The network share counts relay nodes, not what miners accept.
 
 ## Keeping up with new node releases
 

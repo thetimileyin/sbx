@@ -16,6 +16,7 @@ import (
 	"syscall"
 
 	"github.com/thetimileyin/sbx/internal/engine"
+	"github.com/thetimileyin/sbx/internal/network"
 	"github.com/thetimileyin/sbx/internal/web"
 )
 
@@ -33,12 +34,17 @@ Usage:
       --file FILE                    read transactions from FILE ("-" for stdin), one per line
       --mempool FILE                 load these transactions into the mempool first
       --json                         print the result as JSON
+      --offline                      don't fetch node counts (see below)
   sbx demo [basic|package|mempool]   run the built-in examples (all groups by default)
-  sbx serve [--addr 127.0.0.1:8338]  local web page and JSON API
+  sbx serve [--addr 127.0.0.1:8338]  local web page and JSON API (also takes --offline)
   sbx down                           stop the nodes
   sbx version                        print the sbx version
 
 Every command takes --home DIR (default $SBX_HOME or ~/.sbx).
+
+check, demo and serve weigh each verdict by how many reachable mainnet nodes run that
+release line, using the public snapshot from bitnodes.io (cached for 6 hours). Only the
+snapshot is downloaded; nothing about your transactions leaves this machine.
 
 Exit codes for check: 0 every version accepts, 3 at least one rejects, 1 error, 2 usage.
 `
@@ -78,9 +84,19 @@ func run(ctx context.Context, cmd string, args []string) (int, error) {
 		mempool = fs.String("mempool", "", "mempool setup file, one hex per line")
 		addr    = fs.String("addr", "127.0.0.1:8338", "listen address (loopback only)")
 		noSigs  = fs.Bool("skip-signatures", false, "fetch: don't verify builder signatures (not recommended)")
+		offline = fs.Bool("offline", false, "don't fetch node counts from bitnodes.io")
 	)
-	if err := fs.Parse(args); err != nil {
-		return 2, nil
+	// Flags may come before or after other arguments: sbx demo basic --offline.
+	var rest []string
+	for {
+		if err := fs.Parse(args); err != nil {
+			return 2, nil
+		}
+		if fs.NArg() == 0 {
+			break
+		}
+		rest = append(rest, fs.Arg(0))
+		args = fs.Args()[1:]
 	}
 	e, err := engine.Open(*home)
 	if err != nil {
@@ -105,7 +121,7 @@ func run(ctx context.Context, cmd string, args []string) (int, error) {
 		}
 		return 0, nil
 	case "check":
-		req, err := readRequest(fs.Args(), *file, *mempool)
+		req, err := readRequest(rest, *file, *mempool)
 		if err != nil {
 			return 2, err
 		}
@@ -113,6 +129,7 @@ func run(ctx context.Context, cmd string, args []string) (int, error) {
 		if err != nil {
 			return 1, err
 		}
+		res.AddNetwork(snapshot(*home, *offline))
 		if *asJSON {
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "  ")
@@ -125,7 +142,7 @@ func run(ctx context.Context, cmd string, args []string) (int, error) {
 		}
 		return 0, nil
 	case "demo":
-		return demo(ctx, e, fs.Args(), *asJSON)
+		return demo(ctx, e, rest, *asJSON, snapshot(*home, *offline))
 	case "serve":
 		if _, err := web.CheckAddr(*addr); err != nil {
 			return 2, err
@@ -134,7 +151,7 @@ func run(ctx context.Context, cmd string, args []string) (int, error) {
 			return 1, err
 		}
 		fmt.Printf("sbx is serving http://%s (Ctrl-C to stop; the nodes keep running until `sbx down`)\n", *addr)
-		return 0, web.Serve(ctx, e, *addr)
+		return 0, web.Serve(ctx, e, *addr, func() *network.Snapshot { return snapshot(*home, *offline) })
 	}
 	fmt.Print(usage)
 	return 2, fmt.Errorf("unknown command %q", cmd)
@@ -183,7 +200,21 @@ func readRequest(args []string, file, mempool string) (engine.Request, error) {
 	return req, nil
 }
 
-func demo(ctx context.Context, e *engine.Engine, groups []string, asJSON bool) (int, error) {
+// snapshot returns node counts for weighing verdicts, or nil when offline or when
+// they can't be had (the check itself never depends on them).
+func snapshot(home string, offline bool) *network.Snapshot {
+	if offline {
+		return nil
+	}
+	s, err := network.Load(home)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "sbx: %v; showing verdicts without network shares\n", err)
+		return nil
+	}
+	return s
+}
+
+func demo(ctx context.Context, e *engine.Engine, groups []string, asJSON bool, snap *network.Snapshot) (int, error) {
 	want := map[string]bool{}
 	for _, g := range groups {
 		want[g] = true
@@ -206,6 +237,7 @@ func demo(ctx context.Context, e *engine.Engine, groups []string, asJSON bool) (
 		if err != nil {
 			return 1, fmt.Errorf("%s: %w", ex.ID, err)
 		}
+		res.AddNetwork(snap)
 		if asJSON {
 			all = append(all, entry{ex.ID, ex.Title, res})
 		} else {

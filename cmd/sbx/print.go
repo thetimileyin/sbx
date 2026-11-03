@@ -32,20 +32,31 @@ func printResult(w io.Writer, title string, r *engine.Result) {
 		}
 		fmt.Fprintf(w, "  %-9s %s…  v%d  %d vB  %s\n", t.Label, t.TxID[:12], t.Version, t.VSize, fee)
 	}
-	const pad = "                    "
+	pad := "                    "
+	if r.Network != nil {
+		pad += "      "
+	}
 	for _, v := range r.Verdicts {
+		label := fmt.Sprintf("%-16s", v.Label)
+		if r.Network != nil {
+			share := "    "
+			if v.NetworkShare != nil {
+				share = pct(*v.NetworkShare)
+			}
+			label += fmt.Sprintf(" %4s ", share)
+		}
 		switch {
 		case v.Error != "":
-			fmt.Fprintf(w, "  %-16s no result  %s\n", v.Label, v.Error)
+			fmt.Fprintf(w, "  %s no result  %s\n", label, v.Error)
 			continue
 		case v.Accepted:
 			line := "accept"
 			if v.Evicts > 0 {
 				line += fmt.Sprintf("  (replaces %d mempool tx%s)", v.Evicts, plural(v.Evicts))
 			}
-			fmt.Fprintf(w, "  %-16s %s\n", v.Label, line)
+			fmt.Fprintf(w, "  %s %s\n", label, line)
 		default:
-			fmt.Fprintf(w, "  %-16s REJECT\n", v.Label)
+			fmt.Fprintf(w, "  %s REJECT\n", label)
 		}
 		for _, c := range v.Causes {
 			fmt.Fprintf(w, "%s%s: %s\n%s  → %s\n", pad, c.Tx, c.Reason, pad, c.Explain)
@@ -58,9 +69,24 @@ func printResult(w io.Writer, title string, r *engine.Result) {
 			fmt.Fprintf(w, "%s⚠ %s was refused here (%s), so this version isn't seeing the same mempool\n", pad, s.Tx, reason)
 		}
 	}
+	if n := r.Network; n != nil {
+		fmt.Fprintf(w, "  network: accepted by versions on %s of reachable nodes, rejected by %s; %s run versions sbx doesn't test\n",
+			pct(n.Accepted), pct(n.Rejected), pct(n.Untested))
+		fmt.Fprintf(w, "           (%d nodes, %s snapshot of %s; a share is for the whole release line)\n",
+			n.Nodes, n.Source, n.Taken.Format("2 Jan 15:04 UTC"))
+	}
 	for _, n := range r.Notes {
 		fmt.Fprintf(w, "  note: %s\n", n)
 	}
+}
+
+// pct formats a fraction as a whole percentage, showing "<1%" rather than "0%" for a
+// small but non-zero share.
+func pct(f float64) string {
+	if f > 0 && f < 0.005 {
+		return "<1%"
+	}
+	return fmt.Sprintf("%.0f%%", 100*f)
 }
 
 func plural(n int) string {

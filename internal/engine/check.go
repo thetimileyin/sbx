@@ -7,6 +7,10 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/thetimileyin/sbx/internal/network"
+	"github.com/thetimileyin/sbx/internal/release"
 )
 
 const (
@@ -49,6 +53,8 @@ type Verdict struct {
 	SetupIssues []Cause  `json:"setup_issues,omitempty"` // mempool setup txs this version refused
 	Evicts      int      `json:"evicts,omitempty"`
 	Error       string   `json:"error,omitempty"` // the probe failed; no verdict
+	// Fraction of reachable mainnet nodes on this version's release line; set by AddNetwork.
+	NetworkShare *float64 `json:"network_share,omitempty"`
 }
 
 type Result struct {
@@ -56,8 +62,53 @@ type Result struct {
 	MempoolTxs int       `json:"mempool_txs"`
 	Verdicts   []Verdict `json:"verdicts"`
 	// all-accept | disagree | reject-same | reject-different | error
-	Agreement string   `json:"agreement"`
-	Notes     []string `json:"notes,omitempty"`
+	Agreement string        `json:"agreement"`
+	Notes     []string      `json:"notes,omitempty"`
+	Network   *NetworkShare `json:"network,omitempty"`
+}
+
+// NetworkShare weighs the verdicts by how many reachable mainnet nodes run each
+// release line. Each tested version stands for its whole line (Core 31.1 for every
+// Core 31.x node). Everything else falls under Untested: versions and forks sbx
+// doesn't run, and versions whose check failed.
+type NetworkShare struct {
+	Source   string    `json:"source"`
+	Taken    time.Time `json:"taken"`
+	Nodes    int       `json:"nodes"`
+	Accepted float64   `json:"accepted"`
+	Rejected float64   `json:"rejected"`
+	Untested float64   `json:"untested"`
+}
+
+// AddNetwork attaches node shares from a network snapshot. A nil snapshot leaves r
+// unchanged.
+func (r *Result) AddNetwork(s *network.Snapshot) {
+	if s == nil || s.Total == 0 {
+		return
+	}
+	lines := map[string]string{}
+	for _, rel := range release.Matrix {
+		lines[rel.Name] = rel.Line()
+	}
+	n := &NetworkShare{Source: s.Source, Taken: s.Taken, Nodes: s.Total}
+	for i := range r.Verdicts {
+		v := &r.Verdicts[i]
+		line, ok := lines[v.Node]
+		if !ok {
+			continue
+		}
+		share := s.Share(line)
+		v.NetworkShare = &share
+		switch {
+		case v.Error != "":
+		case v.Accepted:
+			n.Accepted += share
+		default:
+			n.Rejected += share
+		}
+	}
+	n.Untested = max(0, 1-n.Accepted-n.Rejected)
+	r.Network = n
 }
 
 // AllAccepted reports whether every version accepted.
