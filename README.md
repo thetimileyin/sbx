@@ -1,6 +1,6 @@
 # sbx — will it relay?
 
-Checks a Bitcoin transaction, a package, or a fee bump against **Core 28.4, 29.4, 30.3, 31.1 and Knots 29.4.2 at once**. It shows which versions accept it, which reject it, and why in plain language. Everything runs locally on a private regtest network, and nothing is broadcast.
+Checks a Bitcoin transaction, a package, or a fee bump against **Core 28.4, 29.5, 30.4, 31.2, 32.1 and Knots 29.4.3 at once**. It shows which versions accept it, which reject it, and why in plain language. Everything runs locally on a private regtest network, and nothing is broadcast.
 
 It's a single Go binary that uses only Go's standard library. It runs the official release binaries directly, so there's no Docker.
 
@@ -58,7 +58,7 @@ Data lives in `$SBX_HOME` (default `~/.sbx`).
 5. **Explain.** The tool separates root causes from knock-on rejections (a child failing only because its parent did). It translates each reject reason into plain language, and names the known policy difference when the versions split.
 6. **Clean up.** Each probe is stopped and its data deleted. The persistent nodes never change, so checks can't affect each other. A check takes about 0.7 seconds.
 
-7. **Weigh by the network.** Each verdict is weighed by how many reachable mainnet nodes run that release line, from the public [Bitnodes](https://bitnodes.io) snapshot. A result reads like "accepted by versions on 39% of reachable nodes, rejected by 34%; 26% run versions sbx doesn't test". Each tested version stands for its whole line (Core 31.1 for every Core 31.x node). Forks with their own policy, such as Libre Relay, count as untested.
+7. **Weigh by the network.** Each verdict is weighed by how many reachable mainnet nodes run that release line, from the public [Bitnodes](https://bitnodes.io) snapshot. A result reads like "accepted by versions on 54% of reachable nodes, rejected by 34%; 11% run versions sbx doesn't test". Each tested version stands for its whole line (Core 31.2 for every Core 31.x node). Forks with their own policy, such as Libre Relay, count as untested.
 
     Only the snapshot is downloaded, and it's cached for 6 hours in the data folder. Nothing about your transactions leaves your machine. If Bitnodes can't be reached, a cached snapshot up to a week old is used; otherwise the verdicts are shown without shares. `--offline` turns it off.
 
