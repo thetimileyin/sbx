@@ -253,12 +253,30 @@ textarea.hex::placeholder { color: var(--faint); font-family: var(--sans); font-
 .vline .name { font-weight: 500; }
 .vline .midsep { color: var(--faint); }
 .vstate { display: inline-flex; align-items: center; gap: 8px; }
-.vsub { margin-top: 2px; font: 12px/1.4 var(--mono); color: var(--faint); }
+.vsub { margin-top: 2px; font: 12px/1.4 var(--mono); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vrow.accept .vstate { color: var(--accept); }
 .vrow.reject .vstate { color: var(--reject); }
 .vrow.error .vstate { color: var(--warn); }
 .vrow.pending .vstate, .vrow.idle .vstate { color: var(--faint); }
 .vstate .icon { width: 14px; height: 14px; }
+
+/* network share: per row, and the whole-network bar */
+.vshare { margin-left: auto; display: grid; justify-items: end; gap: 5px; font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--text); flex: none; }
+.vshare .meter { display: block; width: 56px; height: 3px; background: var(--line); }
+.vshare .meter > span { display: block; height: 100%; background: var(--muted); }
+.netbar { display: flex; height: 10px; gap: 2px; background: transparent; }
+.netbar > span { flex-basis: 0; min-width: 3px; }
+.netbar .accept { background: var(--accept); }
+.netbar .reject { background: var(--reject); }
+.netbar .other { background: repeating-linear-gradient(135deg, var(--line-strong) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.netkey { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; padding: 0; font-size: 13.5px; color: var(--muted); }
+.netkey li { display: inline-flex; align-items: center; gap: 7px; }
+.netkey b { color: var(--text); font: 600 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.netkey .swatch { width: 9px; height: 9px; flex: none; }
+.netkey .accept .swatch { background: var(--accept); }
+.netkey .reject .swatch { background: var(--reject); }
+.netkey .other .swatch { background: repeating-linear-gradient(135deg, var(--line-strong) 0 2px, transparent 2px 4px); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.netcap { margin: 10px 0 0; max-width: 68ch; font-size: 12.5px; color: var(--faint); }
 /* odd ones out: lifted row in their own verdict colour, with a left bar */
 .vrow.odd.accept { background: var(--accept-soft); box-shadow: inset 2px 0 0 var(--accept); }
 .vrow.odd.reject { background: var(--reject-soft); box-shadow: inset 2px 0 0 var(--reject); }
