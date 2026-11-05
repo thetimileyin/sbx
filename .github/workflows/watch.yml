@@ -37,6 +37,18 @@ jobs:
           if [ -n "$FROM" ]; then args+=(--from "$FROM"); fi
           go run ./cmd/sbx-watch "${args[@]}"
 
+      # Pull requests opened with the default token don't trigger ci.yml, so the unit
+      # tests run here and the result goes in the pull request body.
+      - name: Run the unit tests against the new matrix
+        id: unit
+        if: steps.watch.outputs.changed == 'true'
+        run: |
+          if go test ./... 2>&1 | tee "$RUNNER_TEMP/unit.txt"; [ "${PIPESTATUS[0]}" -eq 0 ]; then
+            echo "result=pass" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=fail" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run every example against the new matrix
         id: golden
         if: steps.watch.outputs.changed == 'true'
@@ -56,9 +68,22 @@ jobs:
         if: steps.watch.outputs.changed == 'true'
         env:
           RESULT: ${{ steps.golden.outputs.result }}
+          UNIT: ${{ steps.unit.outputs.result }}
         run: |
           {
             cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo "### Unit tests"
+            echo
+            if [ "$UNIT" = "pass" ]; then
+              echo "\`go test ./...\` passes with the new matrix. CI doesn't run on this pull request; this is the watcher's own run."
+            else
+              echo "**\`go test ./...\` fails with the new matrix. Don't merge until it's fixed.**"
+              echo
+              echo '```'
+              grep -E '^(--- FAIL|FAIL|ok|panic:)|_test\.go:' "$RUNNER_TEMP/unit.txt" | head -40
+              echo '```'
+            fi
             echo
             echo "### How every example behaves"
             echo
@@ -70,7 +95,7 @@ jobs:
             echo
             cat "$RUNNER_TEMP/report.md" 2>/dev/null || echo "_The example run didn't produce a report; see the workflow log._"
             echo
-            echo "New release lines have no recorded expectations yet. If their results look right, add them to \`golden.json\` in this pull request."
+            echo "New release lines have no recorded expectations yet. If their results look right, add them to \`golden.json\` in this pull request. Also update the versions at the top of \`README.md\`."
             echo
             echo "_Opened by the release watcher (\`.github/workflows/watch.yml\`)._"
           } > "$RUNNER_TEMP/body.md"

@@ -3,25 +3,38 @@ package release
 import "testing"
 
 func TestMatrixDerivesTheSameReleases(t *testing.T) {
-	want := map[string][2]string{
-		"core-28.4":    {"Core 28.4", "https://bitcoincore.org/bin/bitcoin-core-28.4/"},
-		"core-31.1":    {"Core 31.1", "https://bitcoincore.org/bin/bitcoin-core-31.1/"},
-		"knots-29.4.2": {"Knots 29.4.2", "https://bitcoinknots.org/files/29.x/29.4.2.knots20260508/"},
+	m, err := ParseMatrix([]byte(`[
+		{"impl": "core", "version": "28.4"},
+		{"impl": "core", "version": "31.1"},
+		{"impl": "knots", "version": "29.4.2.knots20260508"}
+	]`))
+	if err != nil {
+		t.Fatal(err)
 	}
-	found := 0
-	for _, r := range Matrix {
-		if w, ok := want[r.Name]; ok {
-			found++
-			if r.Label != w[0] || r.Base != w[1] {
-				t.Errorf("%s: label %q base %q", r.Name, r.Label, r.Base)
-			}
+	want := []struct{ name, label, base, line string }{
+		{"core-28.4", "Core 28.4", "https://bitcoincore.org/bin/bitcoin-core-28.4/", "core-28"},
+		{"core-31.1", "Core 31.1", "https://bitcoincore.org/bin/bitcoin-core-31.1/", "core-31"},
+		{"knots-29.4.2", "Knots 29.4.2", "https://bitcoinknots.org/files/29.x/29.4.2.knots20260508/", "knots-29"},
+	}
+	if len(m) != len(want) {
+		t.Fatalf("got %d releases, want %d", len(m), len(want))
+	}
+	for i, w := range want {
+		r := m[i]
+		if r.Name != w.name || r.Label != w.label || r.Base != w.base || r.Line() != w.line {
+			t.Errorf("%s: name %q label %q base %q line %q", w.name, r.Name, r.Label, r.Base, r.Line())
 		}
 	}
-	if found != len(want) {
-		t.Fatalf("matrix is missing expected releases")
+}
+
+// The shipped matrix must parse and list both implementations, whatever its versions.
+func TestShippedMatrix(t *testing.T) {
+	impls := map[string]bool{}
+	for _, r := range Matrix {
+		impls[r.Impl] = true
 	}
-	if Matrix[3].Line() != "core-31" || Matrix[4].Line() != "knots-29" {
-		t.Fatalf("lines: %s %s", Matrix[3].Line(), Matrix[4].Line())
+	if !impls["core"] || !impls["knots"] {
+		t.Fatalf("matrix lists %v", impls)
 	}
 }
 
