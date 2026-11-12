@@ -1,5 +1,5 @@
 name: sbx relay check
-description: Check Bitcoin transactions against Bitcoin Core 28–31 and Knots on a private regtest network, and fail if any version rejects them.
+description: Check Bitcoin transactions against Bitcoin Core 28–32 and Knots on a private regtest network, and fail if any version rejects them.
 author: thetimileyin
 branding:
   icon: check-circle
@@ -7,7 +7,7 @@ branding:
 
 inputs:
   version:
-    description: sbx release to install, e.g. v0.1.1, or "latest".
+    description: sbx release to install, e.g. v0.2.0, or "latest".
     default: latest
   check:
     description: >

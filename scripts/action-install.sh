@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Used by action.yml: install an sbx release into the runner and make sure gpgv exists.
-# Reads SBX_VERSION ("latest" or a tag like v0.1.1). Writes to GITHUB_PATH, GITHUB_ENV
+# Reads SBX_VERSION ("latest" or a tag like v0.2.0). Writes to GITHUB_PATH, GITHUB_ENV
 # and GITHUB_OUTPUT.
 set -euo pipefail
 repo="thetimileyin/sbx"

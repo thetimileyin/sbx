@@ -33,4 +33,4 @@ body:
     attributes:
       label: sbx version
       description: Output of `sbx version`.
-      placeholder: sbx v0.1.1
+      placeholder: sbx v0.2.0
