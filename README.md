@@ -2,6 +2,8 @@
 
 Checks a Bitcoin transaction, a package, or a fee bump against **Core 28.4, 29.5, 30.4, 31.2, 32.1 and Knots 29.4.3 at once**. It shows which versions accept it, which reject it, and why in plain language. Everything runs locally on a private regtest network, and nothing is broadcast.
 
+Website: **https://thetimileyin.github.io/sbx/**
+
 It's a single Go binary that uses only Go's standard library. It runs the official release binaries directly, so there's no Docker.
 
 ## Install
@@ -24,7 +26,7 @@ go install github.com/thetimileyin/sbx/cmd/sbx@latest
 
 ```bash
 sbx fetch          # official releases; each SHA256SUMS must be signed by 3+ known builders
-sbx up             # 5 matrix nodes + 1 builder node on regtest
+sbx up             # 6 matrix nodes + 1 builder node on regtest
 sbx serve          # http://127.0.0.1:8338
 ```
 
@@ -44,7 +46,7 @@ Data lives in `$SBX_HOME` (default `~/.sbx`).
 | `sbx check --file FILE` / `--file -` | Reads transactions from a file or from stdin |
 | `sbx check --json …` | Prints the result as JSON, the same shape the web page uses |
 | `sbx check --offline …` | Skips the network share (also works for `demo` and `serve`) |
-| `sbx demo [basic\|package\|mempool]` | Runs the 21 built-in examples |
+| `sbx demo [basic\|package\|mempool]` | Runs the 24 built-in examples |
 | `sbx serve [--addr 127.0.0.1:8338]` | Local web page and JSON API |
 
 `check` exit codes: **0** every version accepts, **3** at least one rejects, **1** error, **2** usage. That lets a CI step fail when a wallet builds a transaction that some versions won't relay.
@@ -117,7 +119,7 @@ go test ./...                                                       # unit tests
 SBX_INTEGRATION=1 SBX_HOME=../.sbx go test ./internal/engine -run Golden -v
 ```
 
-The **golden test set** (`internal/engine/engine_test.go`) records each version's verdict for all 21 examples, as measured by the spike on 2026-10-15. Every case passes. When a new release is added, this is where behaviour changes show up first.
+The **golden test set** (`internal/engine/engine_test.go`) records each version's verdict for all 24 examples, first measured on 2026-10-15. Every case passes. When a new release is added, this is where behaviour changes show up first.
 
 ## How this differs from the outline
 
