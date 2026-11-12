@@ -156,7 +156,11 @@ func TestGolden(t *testing.T) {
 					continue
 				}
 				if want := golden.Examples[ex.ID][line]; verdict != want {
-					t.Errorf("%s (%s): got %s, want %s", e.Matrix[i].Label, line, verdict, want)
+					if v.Error != "" {
+						t.Errorf("%s (%s): got E, want %s: %s", e.Matrix[i].Label, line, want, v.Error)
+					} else {
+						t.Errorf("%s (%s): got %s, want %s", e.Matrix[i].Label, line, verdict, want)
+					}
 				}
 			}
 		})
